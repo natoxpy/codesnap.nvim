@@ -22,6 +22,7 @@ pub struct TakeSnapshotParams {
     pub theme: String,
     pub bg_theme: String,
     pub bg_color: Option<String>,
+    pub bg_editor_color: Option<String>,
     // Breadcrumbs path
     pub file_path: String,
     pub breadcrumbs_separator: String,

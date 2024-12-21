@@ -1,10 +1,13 @@
 use super::interface::{
     component::{Component, ComponentContext, RenderParams},
-    render_error,
+    render_error::{self, RenderError},
     style::{ComponentAlign, ComponentStyle, RawComponentStyle, Style},
 };
-use crate::edges::padding::Padding;
-use tiny_skia::{FillRule, Paint, PathBuilder, Pixmap, Transform};
+use crate::{
+    color::{is_valid_hex_color, RgbaColor},
+    edges::padding::Padding,
+};
+use tiny_skia::{Color, FillRule, Paint, PathBuilder, Pixmap, Transform};
 
 pub const EDITOR_PADDING: f32 = 20.;
 
@@ -12,6 +15,7 @@ pub struct Rect {
     radius: f32,
     min_width: f32,
     children: Vec<Box<dyn Component>>,
+    bg_color: Option<String>,
 }
 
 impl Component for Rect {
@@ -80,7 +84,25 @@ impl Component for Rect {
         path_builder.close();
         let path = path_builder.finish().unwrap();
         let mut paint = Paint::default();
-        paint.set_color_rgba8(40, 44, 52, 237);
+
+        let color = match self.bg_color.as_ref() {
+            Some(color) => {
+                if !is_valid_hex_color(color) {
+                    return Err(RenderError::InvalidHexColor(color.to_string()));
+                }
+
+                let rgba_color: RgbaColor = color.to_string().into();
+                rgba_color.color
+            }
+            None => Color::from_rgba8(40, 44, 52, 237),
+        };
+
+        paint.set_color_rgba8(
+            (color.red() * 255.) as u8,
+            (color.green() * 255.) as u8,
+            (color.blue() * 255.) as u8,
+            (color.alpha() * 255.) as u8,
+        );
 
         pixmap.fill_path(
             &path,
@@ -96,9 +118,15 @@ impl Component for Rect {
 }
 
 impl Rect {
-    pub fn new(radius: f32, min_width: Option<f32>, children: Vec<Box<dyn Component>>) -> Rect {
+    pub fn new(
+        radius: f32,
+        bg_color: Option<String>,
+        min_width: Option<f32>,
+        children: Vec<Box<dyn Component>>,
+    ) -> Rect {
         Rect {
             radius,
+            bg_color,
             children,
             min_width: min_width.unwrap_or(0.),
         }
